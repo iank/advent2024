@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::env;
 use std::fs::File;
 use std::io::BufRead;
@@ -82,20 +83,17 @@ fn sum_midpoints(updates: Vec<Vec<u32>>) -> u32 {
     result
 }
 
-fn get_complete_order(rules: &Vec<(u32, u32)>) -> Vec<u32> {
-    let g = DiGraphMap::<u32, ()>::from_edges(rules);
+fn correct_update(update: Vec<u32>, rules: &Vec<(u32, u32)>) -> Vec<u32> {
+    // Find correct order for this set of pages
+    let update_map: HashSet<u32> = update.into_iter().collect();
+
+    let relevant_rules = rules
+        .into_iter()
+        .filter(|(a, b)| update_map.contains(a) && update_map.contains(b))
+        .collect::<Vec<&(u32, u32)>>();
+
+    let g = DiGraphMap::<u32, ()>::from_edges(relevant_rules);
     toposort(&g, None).unwrap()
-}
-
-fn correct_update(update: Vec<u32>, complete_order: &Vec<u32>) -> Vec<u32> {
-    let mut new_update = vec![];
-
-    for item in complete_order {
-        if update.iter().any(|&i| i == *item) {
-            new_update.push(*item);
-        }
-    }
-    new_update
 }
 
 fn main() -> Result<(), std::io::Error> {
@@ -110,11 +108,10 @@ fn main() -> Result<(), std::io::Error> {
     let (rules, updates) = read_input(file_path)?;
 
     let incorrect_updates = filter_updates(updates, &rules);
-    let complete_order = get_complete_order(&rules);
 
     let corrected = incorrect_updates
         .into_iter()
-        .map(|x| correct_update(x, &complete_order))
+        .map(|x| correct_update(x, &rules))
         .collect::<Vec<Vec<u32>>>();
     println!("{}", sum_midpoints(corrected));
 
