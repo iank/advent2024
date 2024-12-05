@@ -7,6 +7,7 @@ use std::path::Path;
 
 use petgraph::algo::toposort;
 use petgraph::graphmap::DiGraphMap;
+use itertools::izip;
 
 fn read_input(path: &Path) -> Result<(Vec<(u32, u32)>, Vec<Vec<u32>>), std::io::Error> {
     let file = File::open(path)?;
@@ -45,42 +46,9 @@ fn read_input(path: &Path) -> Result<(Vec<(u32, u32)>, Vec<Vec<u32>>), std::io::
     Ok((rules, updates))
 }
 
-fn check_rule(update: &Vec<u32>, rule: &(u32, u32)) -> bool {
-    let i1 = update.iter().position(|n| *n == rule.0);
-    let i2 = update.iter().position(|n| *n == rule.1);
-
-    match (i1, i2) {
-        (Some(a), Some(b)) => a < b, // Check rule
-        _ => true,                   // One or more pages not in update, pass
-    }
-}
-
-fn is_invalid_update(update: &Vec<u32>, rules: &Vec<(u32, u32)>) -> bool {
-    for rule in rules {
-        if check_rule(update, rule) == false {
-            return true;
-        }
-    }
-
-    false
-}
-
-fn filter_updates(updates: Vec<Vec<u32>>, rules: &Vec<(u32, u32)>) -> Vec<Vec<u32>> {
-    updates
-        .into_iter()
-        .filter(|update| is_invalid_update(update, rules))
-        .collect::<Vec<Vec<u32>>>()
-}
-
-fn sum_midpoints(updates: Vec<Vec<u32>>) -> u32 {
-    let mut result = 0;
-
-    for update in updates {
-        assert!(update.len() % 2 == 1);
-        result += update[update.len() / 2];
-    }
-
-    result
+fn midpoint(update: Vec<u32>) -> u32 {
+    assert!(update.len() % 2 == 1);
+    update[update.len() / 2]
 }
 
 fn correct_update(update: Vec<u32>, rules: &Vec<(u32, u32)>) -> Vec<u32> {
@@ -107,13 +75,19 @@ fn main() -> Result<(), std::io::Error> {
     let file_path = Path::new(&args[1]);
     let (rules, updates) = read_input(file_path)?;
 
-    let incorrect_updates = filter_updates(updates, &rules);
-
-    let corrected = incorrect_updates
+    let corrected = updates.clone()
         .into_iter()
         .map(|x| correct_update(x, &rules))
         .collect::<Vec<Vec<u32>>>();
-    println!("{}", sum_midpoints(corrected));
+
+    // Sum midpoints of only reordered updates
+    let mut midpoint_total = 0;
+    for (update_i, corrected_i) in izip!(updates, corrected) {
+        if update_i != corrected_i {
+            midpoint_total += midpoint(corrected_i);
+        }
+    }
+    println!("{}", midpoint_total);
 
     Ok(())
 }
