@@ -1,0 +1,8 @@
+[package]
+name = "day23_1"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+petgraph = "0.6.5"
+regex = "1.11.1"
